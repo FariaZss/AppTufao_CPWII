@@ -1,0 +1,8 @@
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
+
+@layer base {
+  body {
+    font-family: 'Poppins', sans-serif;
+  }
+}
