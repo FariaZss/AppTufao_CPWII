@@ -1,94 +1,110 @@
-<template>
-  <main>
-    <div id="searchMain">
-      <form @submit.prevent="search">
-        <input
-          type="text"
-          placeholder="Buscar Cidade"
-          v-model="cityZip"
-          aria-label="Buscar cidade"
-        />
-        <button type="submit" :disabled="loading">
-          {{ loading ? 'Buscando...' : 'Clique aqui' }}
-        </button>
-      </form>
-
-      <p v-if="errorMsg" class="text-red-600">{{ errorMsg }}</p>
-
-      <section v-if="cities" class="mt-4">
-        <h2 class="text-2xl font-bold">{{ cities }}</h2>
-        <p class="text-sm text-gray-600">{{ dateTime }}</p>
-
-        <div class="mt-4">
-          <p>Temp: {{ weatherData.temp ?? '?' }} °C</p>
-          <p>Máx/Min: {{ weatherData.temp_max ?? '?' }}/{{ weatherData.temp_min ?? '?' }}</p>
-          <p>Sensação: {{ weatherData.feels_like ?? '?' }} °C</p>
-          <p>Humidade: {{ weatherData.humidity ?? '?' }}%</p>
-        </div>
-      </section>
-    </div>
-  </main>
-</template>
-
-
 <script setup>
-import { ref } from 'vue'
-import axios from 'axios'
+import { reactive } from 'vue'
 
-// Use Vite env var (crie .env com VITE_OPENWEATHER_API_KEY=your_key)
+// Usa a mesma variável de ambiente definida em .env
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY
+const emit = defineEmits(['city-selected'])
 
-const cityZip = ref('')
-const cities = ref('')
-const weatherData = ref({})
-const dateTime = ref('')
-const loading = ref(false)
-const errorMsg = ref('')
+const state = reactive({
+  query: "",
+  timeout: null,
+  results: null,
+  error: null,
+  loading: false,
+});
 
-async function search(e) {
-  // prevenir submit (form already uses @submit.prevent, but keep safe)
-  if (e && typeof e.preventDefault === 'function') e.preventDefault()
+const handleSearch = () => {
+  clearTimeout(state.timeout);
 
-  if (!cityZip.value) {
-    errorMsg.value = 'Digite uma cidade'
-    return
-  }
+  // Aguarda o usuário parar de digitar por 500ms antes de buscar
+  state.timeout = setTimeout(async () => {
+    state.error = null;
+    state.results = null;
 
-  loading.value = true
-  errorMsg.value = ''
-
-  try {
-    // 1) Geocoding: obter lat/lon pela cidade
-    const geoRes = await axios.get(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cityZip.value)}&limit=1&appid=${API_KEY}`
-    )
-
-    if (!geoRes.data || !geoRes.data.length) {
-      errorMsg.value = 'Cidade não encontrada'
-      loading.value = false
-      return
+    //Valida se o campo está vazio
+    if (state.query.trim() === "") {
+      state.loading = false;
+      return;
     }
 
-    const { lat, lon, name } = geoRes.data[0]
+    state.loading = true;
 
-    // 2) Weather: obter clima por lat/lon
-    const weatherRes = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
-    )
+    try {
+      // Corrige URL (openweathermap) e faz a chamada à API de geocoding
+      const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
+        state.query
+      )}&limit=5&appid=${API_KEY}`
 
-    cities.value = name || weatherRes.data.name
-    weatherData.value = weatherRes.data.main || {}
-    dateTime.value = new Date((weatherRes.data.dt || 0) * 1000).toLocaleString('pt-BR')
-    cityZip.value = ''
-  } catch (err) {
-    console.error(err)
-    errorMsg.value = 'Erro ao buscar dados. Tente novamente.'
-  } finally {
-    loading.value = false
-  }
+      const response = await fetch(url)
+
+      //Trata resposta HTTP com erro
+      if (!response.ok) {
+        throw new Error(`API retornou status ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      //API retorna vazio
+      if (!Array.isArray(data) || data.length === 0) {
+        state.error = 'Cidade não encontrada.'
+        state.loading = false
+        return
+      }
+
+      //API retorna sucesso
+      state.results = data
+    } catch (err) {
+      //Trata erros
+      console.error("Erro ao buscar cidade: ", err);
+      state.error =
+        "Erro ao buscar a cidade. Verifique sua conexão ou tente novamente.";
+      state.results = null;
+    } finally {
+      //Garante que o Loading será desligado sempre
+      state.loading = false;
+    }
+  }, 500);
+};
+
+const selectCity = (item) => {
+  // Emite o evento que o App.vue espera (`city-selected`)
+  emit('city-selected', {
+    name: item.name,
+    country: item.country || item.state || '',
+    lat: item.lat,
+    lon: item.lon,
+  })
+
+  state.query = `${item.name}, ${item.country || ''}`
+  state.results = null
+  state.error = null
 }
 </script>
 
+<template>
+    <input
+      type="text"
+      v-model="state.query"
+      @input="handleSearch"
+      placeholder="Digite uma cidade..."
+    />
+
+    <!-- ERRO -->
+    <p v-if="state.error">
+      {{ state.error }}
+    </p>
+
+    <!-- RESULTADO -->
+    <ul v-if="state.results">
+      <li
+        v-for="item in state.results"
+        :key="item.lat + item.lon"
+        @click="selectCity(item)"
+      >
+        {{ item.name }} - {{ item.country }}
+      </li>
+    </ul>
+</template>
 
 <style scoped>
 /* estilos mínimos — você pode ajustar com Tailwind ou CSS */
@@ -102,8 +118,10 @@ input[type="text"] {
   border-radius: 0.375rem;
   margin-right: 0.5rem;
 }
+/*
 button[disabled] {
   opacity: 0.6;
   cursor: not-allowed;
 }
+*/
 </style>
