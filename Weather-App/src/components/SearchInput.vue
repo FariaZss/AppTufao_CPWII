@@ -80,15 +80,22 @@ const selectCity = (item) => {
   state.error = null
 }
 </script>
-
+<!--
+  @input="handleSearch"
+-->
 <template>
-    <input
-      type="text"
-      v-model="state.query"
-      @input="handleSearch"
-      placeholder="Digite uma cidade..."
-    />
-
+  <div class="flex justify-center">
+  <!-- sua div do input -->
+  <input
+  type="text"
+  v-model="state.query"
+  placeholder="Digite uma cidade..."
+  />
+  <button type="button" id="btn" @click="handleSearch">
+    Pesquisar 
+  </button>
+</div>
+  
     <!-- ERRO -->
     <p v-if="state.error">
       {{ state.error }}
@@ -107,21 +114,23 @@ const selectCity = (item) => {
 </template>
 
 <style scoped>
-/* estilos mínimos — você pode ajustar com Tailwind ou CSS */
-#searchMain {
-  max-width: 540px;
-  margin: 0 auto;
-}
 input[type="text"] {
+  margin: 5px;
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  margin-right: 0.5rem;
 }
-/*
-button[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
+
+#btn{
+  position: relative;
+  background-color: #D0F0FD;
+  margin: 5px;
+  height: 45px;
+  width: 100px;
+  border-radius: 10px;
+  box-shadow:
+     0 2px 6px rgba(0, 0, 0, 0.20), 
+      0 8px 20px rgba(0, 0, 0, 0.15);
 }
-*/
+
 </style>

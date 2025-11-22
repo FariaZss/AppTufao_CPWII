@@ -30,21 +30,15 @@ watch(
 </script>
 
 <template>
-    <div v-if="props.city" class="weatherInfo" >
-      
-      <h2> {{  props.city.name  }} - {{ props.city.state }} {{  props.city.country }}</h2>
-
-      <!--
-        <p> Lat: {{ props.city.lat }} - Lon: {{  props.city.lon }}</p>
-      -->
-
-      <!-- passa a prop `weather` (nome que o componente espera) -->
+    <div v-if="props.city" id="weatherInfo" >
+      <!--passa a prop `weather` (nome que o componente espera) -->
       <WeatherCard v-if="weather" :weather="weather" />
     </div>
-
     <p v-else>
       Pesquise uma cidade para ver informações
     </p>
 </template>
 
-<style scoped></style>
+<style>
+
+</style>
