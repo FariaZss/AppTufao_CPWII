@@ -80,9 +80,7 @@ const selectCity = (item) => {
   state.error = null
 }
 </script>
-<!--
-  @input="handleSearch"
--->
+
 <template>
   <div class="flex justify-center">
   <!-- sua div do input -->
